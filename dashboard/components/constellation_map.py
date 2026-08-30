@@ -18,18 +18,15 @@ def generate_subsatellite_coordinates(df: pd.DataFrame) -> pd.DataFrame:
     Generate realistic orbital latitude/longitude encounter coordinates for all pairs.
     """
     df_map = df.copy()
-    rng = np.random.RandomState(42)
 
-    # Primary satellite approximate orbital inclinations (Sun-Synchronous LEO ~97-98 deg)
     lats = []
     lons = []
 
     for idx, row in df_map.iterrows():
-        # Distribute encounters across typical LEO ground track bands (-80 to +80 deg lat)
-        seed_hash = abs(hash(row['event_id'])) % 10000
+        seed_hash = abs(hash(str(row['event_id']))) % 10000
         r_local = np.random.RandomState(seed_hash)
         
-        lat = float(r_local.uniform(-75.0, 75.0))
+        lat = float(r_local.uniform(-70.0, 70.0))
         lon = float(r_local.uniform(-175.0, 175.0))
         lats.append(round(lat, 2))
         lons.append(round(lon, 2))
@@ -52,29 +49,30 @@ def render_constellation_map(
 
     # Layer 1: Nominal Passes (Safe)
     nom = df_map[df_map['status'] == 'NOMINAL']
-    fig.add_trace(go.Scattergeo(
-        lon=nom['lon'],
-        lat=nom['lat'],
-        mode='markers',
-        marker=dict(
-            size=6,
-            color='#0284C7',
-            opacity=0.6,
-            symbol='circle',
-            line=dict(width=0.5, color='rgba(255,255,255,0.3)')
-        ),
-        name='Nominal Encounters (Safe)',
-        text=[
-            f"<b>{r['event_id']}</b><br>"
-            f"Asset: {r['primary']}<br>"
-            f"Debris: {r['secondary']}<br>"
-            f"Miss: {r['miss_distance_m']:.1f} m<br>"
-            f"TCA: T - {r['tca_hours']:.1f}h<br>"
-            f"Pc: {r['pc_chan']:.2e}"
-            for _, r in nom.iterrows()
-        ],
-        hoverinfo='text'
-    ))
+    if len(nom) > 0:
+        fig.add_trace(go.Scattergeo(
+            lon=nom['lon'],
+            lat=nom['lat'],
+            mode='markers',
+            marker=dict(
+                size=6,
+                color='#0284C7',
+                opacity=0.65,
+                symbol='circle',
+                line=dict(width=0.5, color='rgba(255,255,255,0.3)')
+            ),
+            name='Nominal Passes (Safe)',
+            text=[
+                f"<b>{r['event_id']}</b><br>"
+                f"Primary: {r['primary']}<br>"
+                f"Debris: {r['secondary']}<br>"
+                f"Miss: {r['miss_distance_m']:.1f} m<br>"
+                f"TCA: T - {r['tca_hours']:.1f}h<br>"
+                f"Pc: {r['pc_chan']:.2e}"
+                for _, r in nom.iterrows()
+            ],
+            hoverinfo='text'
+        ))
 
     # Layer 2: Warning Passes (Elevated Risk)
     warn = df_map[df_map['status'] == 'WARNING']
@@ -90,13 +88,13 @@ def render_constellation_map(
                 symbol='diamond',
                 line=dict(width=1.5, color='#FDE047')
             ),
-            name='Warning Conjunctions (Pc > 1e-5)',
+            name='Warning Passes (Pc > 1e-5)',
             text=[f"{r['primary']}" for _, r in warn.iterrows()],
             textposition='top right',
             textfont=dict(family='JetBrains Mono', size=9, color='#FDE047'),
             hovertext=[
                 f"<b>[WARNING] {r['event_id']}</b><br>"
-                f"Asset: {r['primary']}<br>"
+                f"Primary: {r['primary']}<br>"
                 f"Debris: {r['secondary']}<br>"
                 f"Miss: {r['miss_distance_m']:.1f} m<br>"
                 f"TCA: T - {r['tca_hours']:.1f}h<br>"
@@ -180,8 +178,10 @@ def render_constellation_map(
         countrycolor='#1E293B',
         bgcolor='rgba(0,0,0,0)',
         resolution=110,
-        showgrid=True,
-        gridcolor='rgba(51, 65, 85, 0.3)',
+        lataxis_showgrid=True,
+        lonaxis_showgrid=True,
+        lataxis_gridcolor='rgba(51, 65, 85, 0.3)',
+        lonaxis_gridcolor='rgba(51, 65, 85, 0.3)',
     )
 
     fig.update_layout(
