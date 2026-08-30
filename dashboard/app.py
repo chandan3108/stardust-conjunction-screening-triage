@@ -16,6 +16,7 @@ from pathlib import Path
 from datetime import datetime
 import sys
 import os
+import time
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,11 +25,14 @@ import importlib
 import dashboard.components.funnel_chart as comp_funnel
 import dashboard.components.encounter_3d as comp_3d
 import dashboard.components.metrics_bar as comp_metrics
-from main import run_demo_pipeline
+import main as main_module
 
 importlib.reload(comp_funnel)
 importlib.reload(comp_3d)
 importlib.reload(comp_metrics)
+importlib.reload(main_module)
+
+run_demo_pipeline = main_module.run_demo_pipeline
 
 render_funnel_chart = comp_funnel.render_funnel_chart
 render_encounter_3d = comp_3d.render_encounter_3d
@@ -80,9 +84,10 @@ config = load_model_config()
 
 def callback_run_epoch():
     """Trigger fresh pipeline execution and update memory state."""
+    importlib.reload(main_module)
     st.session_state.executed_cams.clear()
     st.session_state.epoch_count += 1
-    new_df = run_demo_pipeline()
+    new_df = main_module.run_demo_pipeline()
     st.session_state["screening_df"] = new_df
     st.session_state["generation_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -93,7 +98,7 @@ if "screening_df" not in st.session_state:
     if parquet_path.exists():
         st.session_state["screening_df"] = pd.read_parquet(parquet_path)
     else:
-        st.session_state["screening_df"] = run_demo_pipeline()
+        st.session_state["screening_df"] = main_module.run_demo_pipeline()
     st.session_state["generation_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
 df_raw = st.session_state["screening_df"]
