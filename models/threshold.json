@@ -1,0 +1,6 @@
+{
+  "optimal_threshold": 0.5249624028445298,
+  "target_recall": 0.999,
+  "c_fn": 50.0,
+  "c_fp": 1.0
+}
