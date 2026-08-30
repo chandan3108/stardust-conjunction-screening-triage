@@ -2,53 +2,66 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* Global Reset & Base */
-/* Global Reset & Base with Ambient Space Mesh */
+/* Global Reset & Base with Vibrant Ambient Space Mesh */
 html, body, [data-testid="stAppViewContainer"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    background-color: #06090e !important;
+    background-color: #06090f !important;
     background-image: 
-        radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
-        radial-gradient(at 80% 50%, rgba(239, 68, 68, 0.04) 0px, transparent 50%) !important;
-    background-size: 200% 200% !important;
-    animation: ambientDrift 25s ease infinite alternate !important;
+        radial-gradient(at 0% 10%, rgba(14, 165, 233, 0.18) 0px, transparent 55%),
+        radial-gradient(at 100% 15%, rgba(99, 102, 241, 0.17) 0px, transparent 55%),
+        radial-gradient(at 50% 85%, rgba(16, 185, 129, 0.14) 0px, transparent 60%),
+        radial-gradient(at 85% 65%, rgba(239, 68, 68, 0.10) 0px, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px) !important;
+    background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, 50px 50px, 50px 50px !important;
+    animation: ambientDrift 18s ease infinite alternate !important;
     color: #E2E8F0 !important;
 }
 
 @keyframes ambientDrift {
     0% {
-        background-position: 0% 0%;
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0 0, 0 0;
     }
     50% {
-        background-position: 100% 100%;
+        background-position: 100% 100%, 100% 50%, 50% 100%, 100% 100%, 0 0, 0 0;
     }
     100% {
-        background-position: 50% 0%;
+        background-position: 50% 0%, 0% 100%, 100% 0%, 0% 50%, 0 0, 0 0;
     }
 }
 
-/* Subtle grid line overlay */
-[data-testid="stAppViewContainer"]::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-image: 
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
+/* Fix Sidebar Reopen Arrow Button Visibility & Clickability */
+[data-testid="stSidebarCollapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    z-index: 999999 !important;
+    color: #38BDF8 !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    border-radius: 6px !important;
+    padding: 6px !important;
+    margin: 10px !important;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.3) !important;
+    cursor: pointer !important;
 }
 
-/* Sidebar Styling */
+[data-testid="stSidebarCollapsedControl"]:hover {
+    background: rgba(30, 41, 59, 0.95) !important;
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 16px rgba(14, 165, 233, 0.6) !important;
+}
+
+/* Sidebar with Animated Ambient Backdrop */
 [data-testid="stSidebar"] {
-    background-color: rgba(13, 17, 23, 0.92) !important;
-    backdrop-filter: blur(20px) !important;
-    border-right: 1px solid rgba(51, 65, 85, 0.4) !important;
+    background-color: #080c14 !important;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.15) 0px, transparent 60%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.14) 0px, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+    background-size: 150% 150%, 150% 150%, 40px 40px, 40px 40px !important;
+    animation: ambientDrift 20s ease infinite alternate !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.25) !important;
 }
 
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h2,
