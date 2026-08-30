@@ -52,10 +52,18 @@ if css_path.exists():
 
 
 # ============================================================
-# Session State Initialization (Persistent Live Memory)
+# Persistent Constants & Session State Management
 # ============================================================
+ALL_INDIAN_SATELLITES = [
+    'ASTROSAT', 'CARTOSAT-3', 'EMISAT', 'EOS-06',
+    'OCEANSAT-3', 'RESOURCESAT-2A', 'RISAT-2BR1'
+]
+
 if "executed_cams" not in st.session_state:
     st.session_state.executed_cams = set()
+
+if "epoch_count" not in st.session_state:
+    st.session_state.epoch_count = 1
 
 
 @st.cache_resource
@@ -71,14 +79,15 @@ config = load_model_config()
 
 
 def callback_run_epoch():
-    """Streamlit callback that runs BEFORE script re-execution."""
+    """Trigger fresh pipeline execution and update memory state."""
     st.session_state.executed_cams.clear()
+    st.session_state.epoch_count += 1
     new_df = run_demo_pipeline()
     st.session_state["screening_df"] = new_df
     st.session_state["generation_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-# Ensure data is loaded in session state on startup
+# Ensure baseline data is loaded
 if "screening_df" not in st.session_state:
     parquet_path = Path("data/processed/latest_screening.parquet")
     if parquet_path.exists():
@@ -89,6 +98,7 @@ if "screening_df" not in st.session_state:
 
 df_raw = st.session_state["screening_df"]
 generation_time = st.session_state.get("generation_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"))
+epoch_num = st.session_state.get("epoch_count", 1)
 
 # Apply CAM Modifications if executed in session state
 df = df_raw.copy()
@@ -110,13 +120,14 @@ with st.sidebar:
     st.caption("Conjunction Screening Triage | SIH 2026")
     st.markdown("---")
 
-    # Feature 1: Run Live Screening Epoch (Using formal Streamlit on_click callback)
+    # Feature 1: Run Live Screening Epoch
     st.button(
         "⚡ Run Screening Epoch (main.py)",
         on_click=callback_run_epoch,
         use_container_width=True,
         type="primary"
     )
+    st.caption(f"Current Orbit Epoch: **#{epoch_num}** ({generation_time})")
 
     st.markdown("---")
 
@@ -135,11 +146,10 @@ with st.sidebar:
 
     # Satellite and Screening Filters
     st.markdown("#### Primary Satellite Filter")
-    all_primaries = sorted(df['primary'].unique())
     selected_primaries = st.multiselect(
         "Filter Indian Space Assets",
-        options=all_primaries,
-        default=all_primaries,
+        options=ALL_INDIAN_SATELLITES,
+        default=ALL_INDIAN_SATELLITES,
         label_visibility="collapsed"
     )
 
@@ -197,7 +207,7 @@ with st.sidebar:
     st.download_button(
         label="📄 Export CCSDS CDM Report (JSON)",
         data=cdm_export_data,
-        file_name=f"stardust_cdm_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.json",
+        file_name=f"stardust_cdm_epoch_{epoch_num}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.json",
         mime="application/json",
         use_container_width=True
     )
@@ -248,7 +258,7 @@ st.markdown(
         </div>
         <div class="system-status-pill">
             <div class="status-dot"></div>
-            <span>PIPELINE DATA LOADED: {generation_time}</span>
+            <span>EPOCH #{epoch_num} LOADED: {generation_time}</span>
         </div>
     </div>
     """,
@@ -328,7 +338,7 @@ if view_mode == "Live Triage & Action Center":
             if not is_resolved and row['status'] == 'CRITICAL':
                 btn_col1, btn_col2 = st.columns([1.2, 3.8])
                 with btn_col1:
-                    if st.button(f"🚀 Authorize CAM Burn: {row['primary']}", key=f"cam_{row['event_id']}"):
+                    if st.button(f"🚀 Authorize CAM Burn: {row['primary']}", key=f"cam_{row['event_id']}_{epoch_num}"):
                         st.session_state.executed_cams.add(row['event_id'])
                         st.success(f"CAM Thruster Command Transmitted to {row['primary']}! Orbit Raised +5.4 km.")
                         st.rerun()
