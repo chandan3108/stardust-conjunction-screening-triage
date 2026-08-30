@@ -2,22 +2,53 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* Global Reset & Base */
+/* Global Reset & Base with Ambient Space Mesh */
 html, body, [data-testid="stAppViewContainer"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    background: #080B10 !important;
+    background-color: #06090e !important;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(239, 68, 68, 0.04) 0px, transparent 50%) !important;
+    background-size: 200% 200% !important;
+    animation: ambientDrift 25s ease infinite alternate !important;
     color: #E2E8F0 !important;
 }
 
-/* Monospace font for telemetry, coordinates, and metrics */
-.telemetry-font, code, .metric-value, [data-testid="stMetricValue"] {
-    font-family: 'JetBrains Mono', monospace !important;
-    letter-spacing: -0.5px;
+@keyframes ambientDrift {
+    0% {
+        background-position: 0% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    100% {
+        background-position: 50% 0%;
+    }
+}
+
+/* Subtle grid line overlay */
+[data-testid="stAppViewContainer"]::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* Sidebar Styling */
 [data-testid="stSidebar"] {
-    background-color: #0D1117 !important;
-    border-right: 1px solid #1E293B !important;
+    background-color: rgba(13, 17, 23, 0.92) !important;
+    backdrop-filter: blur(20px) !important;
+    border-right: 1px solid rgba(51, 65, 85, 0.4) !important;
 }
 
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h2,
