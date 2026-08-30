@@ -264,18 +264,18 @@ n_critical = int((filtered['pc_chan'] > 1e-4).sum())
 
 
 # ============================================================
-# Main Header
+# Main Header (Centered Aerospace Title & Subtitle)
 # ============================================================
 st.markdown(
     f"""
-    <div class="mission-header">
-        <div>
-            <div class="mission-title">STARDUST — Conjunction Assessment Triage</div>
-            <div class="mission-sub">Real-Time Decision-Support Layer for ISRO Space Situational Awareness (NETRA)</div>
-        </div>
-        <div class="system-status-pill">
-            <div class="status-dot"></div>
-            <span>EPOCH #{epoch_num} LOADED: {generation_time}</span>
+    <div class="mission-header-center">
+        <div class="mission-title-center">STARDUST</div>
+        <div class="mission-sub-center">Conjunction Assessment Triage | ISRO Space Situational Awareness (NETRA)</div>
+        <div style="margin-top: 8px;">
+            <div class="system-status-pill">
+                <div class="status-dot"></div>
+                <span>EPOCH #{epoch_num} LOADED: {generation_time}</span>
+            </div>
         </div>
     </div>
     """,
