@@ -70,28 +70,25 @@ def load_model_config():
 config = load_model_config()
 
 
-def get_screening_data():
-    """Load or initialize data directly in session state for instant updates."""
-    if "screening_df" not in st.session_state:
-        parquet_path = Path("data/processed/latest_screening.parquet")
-        meta_path = Path("data/processed/latest_metadata.json")
-
-        if parquet_path.exists():
-            st.session_state.screening_df = pd.read_parquet(parquet_path)
-        else:
-            st.session_state.screening_df = run_demo_pipeline()
-
-        if meta_path.exists():
-            with open(meta_path) as f:
-                meta = json.load(f)
-                st.session_state.generation_time = meta.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"))
-        else:
-            st.session_state.generation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-
-    return st.session_state.screening_df, st.session_state.generation_time
+def callback_run_epoch():
+    """Streamlit callback that runs BEFORE script re-execution."""
+    st.session_state.executed_cams.clear()
+    new_df = run_demo_pipeline()
+    st.session_state["screening_df"] = new_df
+    st.session_state["generation_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-df_raw, generation_time = get_screening_data()
+# Ensure data is loaded in session state on startup
+if "screening_df" not in st.session_state:
+    parquet_path = Path("data/processed/latest_screening.parquet")
+    if parquet_path.exists():
+        st.session_state["screening_df"] = pd.read_parquet(parquet_path)
+    else:
+        st.session_state["screening_df"] = run_demo_pipeline()
+    st.session_state["generation_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+df_raw = st.session_state["screening_df"]
+generation_time = st.session_state.get("generation_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"))
 
 # Apply CAM Modifications if executed in session state
 df = df_raw.copy()
@@ -113,14 +110,13 @@ with st.sidebar:
     st.caption("Conjunction Screening Triage | SIH 2026")
     st.markdown("---")
 
-    # Feature 1: Run Live Screening Epoch (Triggers main.py & instantly reloads)
-    if st.button("⚡ Run Screening Epoch (main.py)", use_container_width=True, type="primary"):
-        with st.spinner("Running 6-stage orbital screening pipeline..."):
-            st.session_state.executed_cams.clear()
-            new_df = run_demo_pipeline()
-            st.session_state.screening_df = new_df
-            st.session_state.generation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-            st.rerun()
+    # Feature 1: Run Live Screening Epoch (Using formal Streamlit on_click callback)
+    st.button(
+        "⚡ Run Screening Epoch (main.py)",
+        on_click=callback_run_epoch,
+        use_container_width=True,
+        type="primary"
+    )
 
     st.markdown("---")
 
