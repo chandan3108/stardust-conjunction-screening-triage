@@ -128,7 +128,7 @@ with st.sidebar:
 
     # Feature 1: Run Live Screening Epoch
     st.button(
-        "⚡ Run Screening Epoch (main.py)",
+        "Run Screening Epoch (main.py)",
         on_click=callback_run_epoch,
         use_container_width=True,
         type="primary"
@@ -222,7 +222,7 @@ with st.sidebar:
     # Feature 3: Download Official CDM Report
     cdm_export_data = df.to_json(orient='records', indent=2)
     st.download_button(
-        label="📄 Export CCSDS CDM Report (JSON)",
+        label="Export CCSDS CDM Report (JSON)",
         data=cdm_export_data,
         file_name=f"stardust_cdm_epoch_{epoch_num}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.json",
         mime="application/json",
@@ -355,7 +355,7 @@ if view_mode == "Live Triage & Action Center":
             if not is_resolved and row['status'] == 'CRITICAL':
                 btn_col1, btn_col2 = st.columns([1.2, 3.8])
                 with btn_col1:
-                    if st.button(f"🚀 Authorize CAM Burn: {row['primary']}", key=f"cam_{row['event_id']}_{epoch_num}"):
+                    if st.button(f"Authorize CAM Burn: {row['primary']}", key=f"cam_{row['event_id']}_{epoch_num}"):
                         st.session_state.executed_cams.add(row['event_id'])
                         st.success(f"CAM Thruster Command Transmitted to {row['primary']}! Orbit Raised +5.4 km.")
                         st.rerun()
